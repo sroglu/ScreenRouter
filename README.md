@@ -67,6 +67,36 @@ Each content also exposes a `ClosedToken` that trips on close.
 First open runs Awake/Start once; a reopen reactivates without re-Awake, refreshes the closed token,
 and invalidates any stale typed config.
 
+## Host wiring
+
+`ScreenRouterHost` is a thin shell: on `Awake` it builds the router, publishes it on the static seam,
+and (via `OnEnable`) subscribes to `SceneManager.activeSceneChanged`. It wires two serialized fields —
+`_config` (the `ScreenRouterConfig`) and `_contentRoot` (the transform every content instance is
+parented under). **The host does not persist itself** — there is no `DontDestroyOnLoad`, and nothing
+auto-creates the host. **Where the host lives, and whether it survives scene loads, is the consumer's
+decision.**
+
+Two supported placements:
+
+- **Persistent host (recommended for multi-scene apps).** Create the host **once** (e.g. in a
+  bootstrap scene) and make its **whole subtree — host + Canvas + `_contentRoot` — `DontDestroyOnLoad`
+  as one unit.** This is required, not optional: the router instantiates all content under
+  `_contentRoot`, so persisting the host GameObject alone (leaving the content root a scene object)
+  destroys live content and leaves the router parenting under a dead transform. With a persistent
+  host the pooling tiers pay off: on each scene change the router keeps `AppLifetime` content and
+  drops the rest, so cross-scene shell UI (top bar, toast/loading layer) survives while per-scene UI
+  is cleaned up automatically. Use one shared `ScreenRouterConfig` app-wide.
+
+- **Scene-scoped host (single-scene apps, or teams that don't need cross-scene UI).** Place a host +
+  Canvas + content root in each scene. Simpler, no `DontDestroyOnLoad`, but `AppLifetime` and all
+  cross-scene pooling become inert (everything dies with its scene), and you must ensure only one host
+  is alive at a time — the static `Instance` is process-wide and `Publish` is unconditional last-wins,
+  so overlapping hosts (or routing during a scene-transition gap) can leave `Instance` pointing at a
+  torn-down router. Single-scene routing itself works fully.
+
+Rule of thumb: if any UI must outlive a scene load, use a persistent host and mark that UI
+`AppLifetime`; give per-scene UI `SceneLifetime`/`Ephemeral` so it is dropped on each swap.
+
 ## Definitions & config
 
 - `ContentDefinition` (abstract): content type, prefab, pooling tier.
