@@ -1,11 +1,8 @@
 {
     "name": "PFound.ScreenRouter.Tests.EditMode",
-    "rootNamespace": "PFound.ScreenRouter.Tests.EditMode",
+    "rootNamespace": "PFound.ScreenRouter.Tests",
     "references": [
-        "PFound.ScreenRouter",
-        "PFound.ScreenRouter.Unity",
-        "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "PFound.ScreenRouter"
     ],
     "includePlatforms": [
         "Editor"
