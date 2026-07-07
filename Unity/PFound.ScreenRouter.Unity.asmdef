@@ -1,0 +1,16 @@
+{
+    "name": "PFound.ScreenRouter.Unity",
+    "rootNamespace": "PFound.ScreenRouter.Unity",
+    "references": [
+        "PFound.ScreenRouter"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

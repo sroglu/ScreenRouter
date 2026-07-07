@@ -1,0 +1,17 @@
+{
+    "name": "PFound.ScreenRouter.Sample",
+    "rootNamespace": "PFound.ScreenRouter.Sample",
+    "references": [
+        "PFound.ScreenRouter",
+        "PFound.ScreenRouter.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

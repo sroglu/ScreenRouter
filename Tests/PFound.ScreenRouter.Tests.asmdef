@@ -1,0 +1,16 @@
+{
+    "name": "PFound.ScreenRouter.Tests",
+    "rootNamespace": "",
+    "references": [
+        "PFound.ScreenRouter"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
