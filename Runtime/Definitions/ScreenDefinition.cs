@@ -22,7 +22,7 @@ namespace PFound.ScreenRouter
         public static ScreenDefinition CreateRuntime(
             Type contentType,
             GameObject prefab,
-            PoolingType pooling = PoolingType.Ephemeral,
+            PoolingType pooling = PoolingType.DestroyOnClose,
             FrameAnimationPreset? transitionAnimation = null)
         {
             var def = new ScreenDefinition();

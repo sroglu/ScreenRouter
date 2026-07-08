@@ -22,7 +22,7 @@ namespace PFound.ScreenRouter
 
         [SerializeField]
         [Tooltip("Lifetime policy applied once the content closes.")]
-        private PoolingType _pooling = PoolingType.Ephemeral;
+        private PoolingType _pooling = PoolingType.DestroyOnClose;
 
         /// <summary>The resolved content type this definition applies to.</summary>
         public Type ContentType => _contentType.Value;

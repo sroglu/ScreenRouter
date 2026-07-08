@@ -9,19 +9,20 @@ namespace PFound.ScreenRouter
     /// </summary>
     public enum PoolingType
     {
-        /// <summary>Tear the instance down the moment it finishes closing.</summary>
-        Ephemeral = 0,
+        /// <summary>The instance is destroyed as soon as it finishes closing.</summary>
+        DestroyOnClose = 0,
 
-        /// <summary>Keep the instance parked after close, but reclaim it once it has been
-        /// idle for longer than the router's configured grace period.</summary>
-        Recyclable = 1,
+        /// <summary>The instance is kept after it closes so it can be reused. It is
+        /// destroyed only if it stays unused longer than the router's idle grace period.</summary>
+        KeepAndReuse = 1,
 
-        /// <summary>Keep the instance parked for the life of the current scene; discard it
-        /// when the scene is swapped out.</summary>
-        SceneLifetime = 2,
+        /// <summary>The instance is kept and reused for as long as the current scene is
+        /// loaded. It is destroyed when the scene changes.</summary>
+        KeepForScene = 2,
 
-        /// <summary>Keep the instance parked indefinitely; never reclaimed automatically.</summary>
-        AppLifetime = 3,
+        /// <summary>The instance is kept and reused for the whole run of the app. It is
+        /// never destroyed automatically.</summary>
+        KeepAlways = 3,
     }
 
     /// <summary>

@@ -173,19 +173,19 @@ internal static class PureCoreTests
 
     private static void PoolingTests()
     {
-        Check(PoolingPolicy.DestroyOnClose(PoolingType.Ephemeral), "ephemeral destroys on close");
-        Check(!PoolingPolicy.DestroyOnClose(PoolingType.Recyclable), "recyclable kept on close");
-        Check(PoolingPolicy.KeepForReuse(PoolingType.AppLifetime), "app-lifetime kept for reuse");
-        Check(!PoolingPolicy.KeepForReuse(PoolingType.Ephemeral), "ephemeral not kept");
+        Check(PoolingPolicy.DestroyOnClose(PoolingType.DestroyOnClose), "ephemeral destroys on close");
+        Check(!PoolingPolicy.DestroyOnClose(PoolingType.KeepAndReuse), "recyclable kept on close");
+        Check(PoolingPolicy.KeepForReuse(PoolingType.KeepAlways), "app-lifetime kept for reuse");
+        Check(!PoolingPolicy.KeepForReuse(PoolingType.DestroyOnClose), "ephemeral not kept");
 
-        Check(PoolingPolicy.ReclaimWhenIdle(PoolingType.Recyclable), "recyclable reclaimed when idle");
-        Check(!PoolingPolicy.ReclaimWhenIdle(PoolingType.AppLifetime), "app-lifetime not idle-reclaimed");
+        Check(PoolingPolicy.ReclaimWhenIdle(PoolingType.KeepAndReuse), "recyclable reclaimed when idle");
+        Check(!PoolingPolicy.ReclaimWhenIdle(PoolingType.KeepAlways), "app-lifetime not idle-reclaimed");
 
-        Check(PoolingPolicy.DropOnSceneChange(PoolingType.SceneLifetime), "scene-lifetime dropped on scene change");
-        Check(!PoolingPolicy.DropOnSceneChange(PoolingType.AppLifetime), "app-lifetime survives scene change");
+        Check(PoolingPolicy.DropOnSceneChange(PoolingType.KeepForScene), "scene-lifetime dropped on scene change");
+        Check(!PoolingPolicy.DropOnSceneChange(PoolingType.KeepAlways), "app-lifetime survives scene change");
 
-        Check(PoolingPolicy.CanRevive(PoolingType.Recyclable), "recyclable revivable");
-        Check(!PoolingPolicy.CanRevive(PoolingType.Ephemeral), "ephemeral not revivable");
+        Check(PoolingPolicy.CanRevive(PoolingType.KeepAndReuse), "recyclable revivable");
+        Check(!PoolingPolicy.CanRevive(PoolingType.DestroyOnClose), "ephemeral not revivable");
     }
 
     private static void DefinitionRegistryTests()

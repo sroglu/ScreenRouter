@@ -60,7 +60,7 @@ namespace PFound.ScreenRouter
         public static FrameDefinition CreateRuntime(
             Type contentType,
             GameObject prefab,
-            PoolingType pooling = PoolingType.Ephemeral,
+            PoolingType pooling = PoolingType.DestroyOnClose,
             bool blockOverlays = false,
             Type[] overlayExemptions = null,
             bool alwaysStackable = false,

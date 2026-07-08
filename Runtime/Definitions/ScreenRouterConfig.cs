@@ -23,7 +23,7 @@ namespace PFound.ScreenRouter
         [Header("Pooling")]
         [Min(0f)]
         [SerializeField]
-        [Tooltip("Seconds a Recyclable-pooled instance may sit idle before it is reclaimed.")]
+        [Tooltip("Seconds a KeepAndReuse-pooled instance may sit idle before it is reclaimed.")]
         private float _poolIdleTimeoutSeconds = 30f;
 
         [Header("Frame queue")]

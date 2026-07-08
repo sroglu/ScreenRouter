@@ -42,6 +42,16 @@ standalone csc/mono runner in `Tests/PureCore` (see [Testing](#testing)).
 - `ScreenRouterHost` — thin MonoBehaviour that constructs, publishes, and pumps the router.
 - `BackgroundBlurOverlay` — manages the single dim surface behind the frame stack.
 - `BlurClickForwarder` — MonoBehaviour on the blur prefab; forwards a pointer-down to the overlay.
+- `ScreenRouterNavigationSink`, `NavigationFlowHost` — the Unity seam that binds the engine-free
+  flow layer to the live `ScreenRouter.Instance` (see [Declarative NavigationFlow](#declarative-navigationflow)).
+
+**Flow (`Runtime/Flow`, engine-free)**
+- `NavigationFlow` / `NavigationFlow<TAction>` — static builder entry point + the immutable step graph.
+- `NavigationFlowBuilder<TAction>` (+ nested `StepChain`) — fluent, cycle-checked graph builder.
+- `FlowStep<TAction>`, `FlowTransition<TAction>` — graph nodes + action-keyed edges.
+- `NavigationFlowRunner<TAction>` — drives a flow; scope stack of per-scope back-stacks.
+- `INavigationSink` — the engine-free seam the runner drives (router-backed in production).
+- `IFlowTarget` — lambda selector for naming an edge's destination step.
 
 **Content (`Runtime/Content`)**
 - `ContentBase` — shared MonoBehaviour base; owns the renderer handle, the closed token, and the
@@ -144,19 +154,19 @@ Two supported placements:
   as one unit.** This is required, not optional: the router instantiates all content under
   `_contentRoot`, so persisting the host GameObject alone (leaving the content root a scene object)
   destroys live content and leaves the router parenting under a dead transform. With a persistent
-  host the pooling tiers pay off: on each scene change the router keeps `AppLifetime` content and
+  host the pooling tiers pay off: on each scene change the router keeps `KeepAlways` content and
   drops the rest, so cross-scene shell UI (top bar, toast/loading layer) survives while per-scene UI
   is cleaned up automatically. Use one shared `ScreenRouterConfig` app-wide.
 
 - **Scene-scoped host (single-scene apps, or teams that don't need cross-scene UI).** Place a host +
-  Canvas + content root in each scene. Simpler, no `DontDestroyOnLoad`, but `AppLifetime` and all
+  Canvas + content root in each scene. Simpler, no `DontDestroyOnLoad`, but `KeepAlways` and all
   cross-scene pooling become inert (everything dies with its scene), and you must ensure only one host
   is alive at a time — the static `Instance` is process-wide and `Publish` is unconditional last-wins,
   so overlapping hosts (or routing during a scene-transition gap) can leave `Instance` pointing at a
   torn-down router. Single-scene routing itself works fully.
 
 Rule of thumb: if any UI must outlive a scene load, use a persistent host and mark that UI
-`AppLifetime`; give per-scene UI `SceneLifetime`/`Ephemeral` so it is dropped on each swap.
+`KeepAlways`; give per-scene UI `KeepForScene`/`DestroyOnClose` so it is dropped on each swap.
 
 ## Content lifecycle
 
@@ -178,12 +188,12 @@ drivers.
 
 ## Pooling tiers
 
-| Tier             | On close            | Idle reaper | Scene change |
-|------------------|---------------------|-------------|--------------|
-| `Ephemeral`      | destroyed           | n/a         | n/a          |
-| `Recyclable`     | parked for reuse    | reclaimed   | discarded    |
-| `SceneLifetime`  | parked for reuse    | no          | discarded    |
-| `AppLifetime`    | parked for reuse    | no          | survives     |
+| Tier             | On close            | Idle reaper | Scene change | Meaning                                                              |
+|------------------|---------------------|-------------|--------------|----------------------------------------------------------------------|
+| `DestroyOnClose` | destroyed           | n/a         | n/a          | The instance is destroyed as soon as it finishes closing.            |
+| `KeepAndReuse`   | parked for reuse    | reclaimed   | discarded    | Kept for reuse; destroyed only if it stays idle past the grace time. |
+| `KeepForScene`   | parked for reuse    | no          | discarded    | Kept and reused while the scene is loaded; destroyed on scene change.|
+| `KeepAlways`     | parked for reuse    | no          | survives     | Kept and reused for the whole run of the app; never auto-destroyed.  |
 
 First open runs Awake/Start once; a reopen reactivates without re-Awake, refreshes the closed token,
 and invalidates any stale typed config. The tier is read off `ContentDefinition.Pooling` and decided
@@ -285,6 +295,52 @@ registration.
 - `IContentRenderer` — author a content prefab against either shipped backend or a custom one; the
   router touches visuals only through this interface, so uGUI and UI Toolkit stay interchangeable.
 
+## Declarative NavigationFlow
+
+The router's public API (`SwitchScreen` / `OpenFrame`) is imperative and stateless — it has no notion
+of history, so there is no built-in *back*. `Runtime/Flow` adds a declarative layer **over** the
+router (it never modifies the router core): an immutable, action-keyed step graph plus a runner that
+translates actions into router calls and tracks the history the router does not.
+
+The layer is **engine-free**. The runner drives an `INavigationSink` (`SwitchScreen(Type)` /
+`OpenFrame(Type)`), never the router directly, so the whole graph + runner compiles and runs under
+plain csc/mono. The only Unity-touching type is the thin seam `ScreenRouterNavigationSink`, which
+forwards to `ScreenRouter.Instance`; `NavigationFlowHost.CreateRunner(flow)` wires a runner to it in
+one call.
+
+**The graph.** `NavigationFlow.Define<TAction>(name)` (an enum `TAction` gives compile-time-safe
+action keys; `Define(name)` uses `string` keys) returns a fluent `NavigationFlowBuilder`. Nodes are
+screen/frame content types added with `Screen<T>()` / `Frame<T>()`; edges are action keys mapped with
+`OnAction`:
+
+- `OnAction(action, t => t.Screen<U>() / t.Frame<U>())` — an edge to a sibling step (forward
+  references are allowed; the target node is auto-created at build).
+- `OnAction(action, subBuilder / subChain / builtFlow)` — an edge that **enters a sub-flow**.
+
+`Build()` resolves the whole builder graph into shared, immutable `NavigationFlow` instances and
+validates it: a **circular sub-flow reference** (a flow reachable from itself through sub-flow
+entries) throws `InvalidOperationException`. Diamonds (one sub-flow reached by two parents) are shared,
+not rejected; intra-flow action cycles (`A --go--> B --go--> A`) are legal navigation, not build
+cycles.
+
+**The runner.** `NavigationFlowRunner<TAction>` holds a **stack of scopes**, one per active flow
+level, each with its own back-stack:
+
+- `Start()` — enters the root flow at its entry step and routes to it. Throws if started twice.
+- `Execute(action)` — from the current step, either navigates to the edge's target (pushing the
+  current step onto this level's back-stack) or enters a sub-flow (a new scope). Returns `false` when
+  the current step has no edge for the action.
+- `Back()` — the recovered capability. Unwinds this level's back-stack first; when it is empty and the
+  runner is inside a sub-flow, exits to the parent level and re-routes to its current step. Returns
+  `false` at the root entry with nothing left to unwind.
+- `Stop()` — clears every level (can be started again).
+- `Depth` — how deep in sub-flows the runner is (`0` = root). Also exposes `IsRunning`, `ActiveFlow`,
+  `CurrentStep`.
+
+Misuse fails fast: a null flow or sink throws in the constructor; `Execute` / `Back` before `Start`
+throw. "Action not found on the current step" and "already at the root entry" are legitimate
+control-flow results (`false`), not errors.
+
 ## File Structure
 
 ```
@@ -306,13 +362,22 @@ ScreenRouter/
 │   ├── Rendering/             IContentRenderer + uGUI / UI Toolkit backends
 │   ├── Definitions/           ContentDefinition, Frame/Screen defs, config, SerializableType
 │   ├── Animation/             FrameAnimationPreset, IFrameTweenBackend, ManualFrameTweenBackend
-│   └── Router/                ScreenRouter, ScreenRouterHost, BackgroundBlurOverlay, BlurClickForwarder
+│   ├── Flow/                  Engine-free NavigationFlow layer
+│   │   ├── INavigationSink.cs         Runner -> router seam (engine-free)
+│   │   ├── FlowStep.cs                Graph nodes + action-keyed transitions
+│   │   ├── NavigationFlow.cs          Immutable step graph + static builder entry
+│   │   ├── NavigationFlowBuilder.cs   Fluent, cycle-checked builder + StepChain
+│   │   ├── FlowScope.cs               Per-level current step + back-stack
+│   │   └── NavigationFlowRunner.cs    Start/Execute/Back/Stop/Depth over the scope stack
+│   └── Router/                ScreenRouter, ScreenRouterHost, BackgroundBlurOverlay,
+│                              BlurClickForwarder, ScreenRouterNavigationSink (Unity flow seam)
 ├── Editor/
 │   ├── PFound.ScreenRouter.Editor.asmdef
 │   ├── ScreenRouterConfigEditor.cs
 │   └── SerializableTypeDrawer.cs
 └── Tests/
-    ├── PureCore/PureCoreTests.cs        csc/mono runner
+    ├── PureCore/PureCoreTests.cs        csc/mono runner (state core)
+    ├── PureCore/FlowTests.cs            csc/mono runner (NavigationFlow)
     └── EditMode/StateLogicTests.cs      NUnit
 ```
 
@@ -331,15 +396,26 @@ csc -define:SCREENROUTER_PURE_TESTS -out:/tmp/sr.exe \
     Runtime/Core/*.cs Tests/PureCore/PureCoreTests.cs && mono /tmp/sr.exe
 ```
 
+The engine-free NavigationFlow layer has its own standalone runner (graph builder, runner back-stack,
+sub-flows, and cycle detection). The Unity flow seam (`ScreenRouterNavigationSink`) lives under
+`Runtime/Router` and is deliberately excluded from the glob, so the compile stays engine-free:
+
+```
+csc -define:SCREENROUTER_FLOW_TESTS -out:/tmp/sr_flow.exe \
+    Runtime/Flow/*.cs Tests/PureCore/FlowTests.cs && mono /tmp/sr_flow.exe
+```
+
 The MonoBehaviour/lifecycle layer is verified in the Unity editor on integration.
 
 ## Limitations / Known Gaps
 
 - **Single process-wide `Instance`.** `Publish` is unconditional last-wins; overlapping hosts or
   routing during a scene-transition gap can point `Instance` at a torn-down router (see Setup / wiring).
-- **Scene-scoped hosts disable cross-scene pooling.** `AppLifetime` and cross-scene reuse are inert
+- **Scene-scoped hosts disable cross-scene pooling.** `KeepAlways` and cross-scene reuse are inert
   without a persistent host subtree.
-- **No declarative flow DSL.** A Flow/Runner DSL (multi-step nav flows with a back-stack and sub-flows)
-  is a planned future addition and is not part of this release.
+- **NavigationFlow content types are not statically constrained to `Screen`/`Frame`.** To keep the
+  flow core engine-free (mono-testable), the builder's `Screen<T>()` / `Frame<T>()` use a `where T :
+  class` constraint rather than `where T : Screen` / `where T : Frame`; screen-vs-frame is chosen by
+  which method you call, and the router validates the concrete type at open time (fail-fast).
 </content>
 </invoke>

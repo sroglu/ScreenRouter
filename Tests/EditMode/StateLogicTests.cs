@@ -99,11 +99,11 @@ namespace PFound.ScreenRouter.Tests
         [Test]
         public void Pooling_PolicyMatchesTiers()
         {
-            Assert.IsTrue(PoolingPolicy.DestroyOnClose(PoolingType.Ephemeral));
-            Assert.IsTrue(PoolingPolicy.ReclaimWhenIdle(PoolingType.Recyclable));
-            Assert.IsTrue(PoolingPolicy.DropOnSceneChange(PoolingType.SceneLifetime));
-            Assert.IsFalse(PoolingPolicy.DropOnSceneChange(PoolingType.AppLifetime));
-            Assert.IsFalse(PoolingPolicy.CanRevive(PoolingType.Ephemeral));
+            Assert.IsTrue(PoolingPolicy.DestroyOnClose(PoolingType.DestroyOnClose));
+            Assert.IsTrue(PoolingPolicy.ReclaimWhenIdle(PoolingType.KeepAndReuse));
+            Assert.IsTrue(PoolingPolicy.DropOnSceneChange(PoolingType.KeepForScene));
+            Assert.IsFalse(PoolingPolicy.DropOnSceneChange(PoolingType.KeepAlways));
+            Assert.IsFalse(PoolingPolicy.CanRevive(PoolingType.DestroyOnClose));
         }
 
         [Test]

@@ -8,24 +8,24 @@ namespace PFound.ScreenRouter
     public static class PoolingPolicy
     {
         /// <summary>True when the instance must be torn down as soon as it finishes closing.</summary>
-        public static bool DestroyOnClose(PoolingType pooling) => pooling == PoolingType.Ephemeral;
+        public static bool DestroyOnClose(PoolingType pooling) => pooling == PoolingType.DestroyOnClose;
 
         /// <summary>True when a closed instance is parked for later reuse rather than destroyed.</summary>
-        public static bool KeepForReuse(PoolingType pooling) => pooling != PoolingType.Ephemeral;
+        public static bool KeepForReuse(PoolingType pooling) => pooling != PoolingType.DestroyOnClose;
 
         /// <summary>True when a parked instance is subject to the idle-timeout reaper.</summary>
-        public static bool ReclaimWhenIdle(PoolingType pooling) => pooling == PoolingType.Recyclable;
+        public static bool ReclaimWhenIdle(PoolingType pooling) => pooling == PoolingType.KeepAndReuse;
 
         /// <summary>
-        /// True when a parked instance must be discarded on a scene swap. Only the app-lifetime tier
-        /// survives; scene-lifetime and idle-recyclable instances are scene-local by design.
+        /// True when a parked instance must be discarded on a scene swap. Only the KeepAlways tier
+        /// survives; KeepForScene and KeepAndReuse instances are scene-local by design.
         /// </summary>
-        public static bool DropOnSceneChange(PoolingType pooling) => pooling != PoolingType.AppLifetime;
+        public static bool DropOnSceneChange(PoolingType pooling) => pooling != PoolingType.KeepAlways;
 
         /// <summary>
-        /// True when a previously-opened instance can be revived in place. Every non-ephemeral
-        /// tier reuses its instance; ephemeral content is always built fresh.
+        /// True when a previously-opened instance can be revived in place. Every tier except
+        /// DestroyOnClose reuses its instance; DestroyOnClose content is always built fresh.
         /// </summary>
-        public static bool CanRevive(PoolingType pooling) => pooling != PoolingType.Ephemeral;
+        public static bool CanRevive(PoolingType pooling) => pooling != PoolingType.DestroyOnClose;
     }
 }
