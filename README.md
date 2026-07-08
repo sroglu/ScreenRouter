@@ -7,8 +7,11 @@ surface. The view *is* the content — one prefab carries both the `ContentBase`
 
 ## Quick reference
 
-Add a `ScreenRouterHost` (wired to a `ScreenRouterConfig` + a content-root transform) to a scene,
-then route through the static seam:
+Author one `ScreenRouterConfig` asset (*Create > PFound/ScreenRouter/Router Config*) and add screens
+and frames as inline rows in its lists — the `[Serializable]` `ScreenDefinition` / `FrameDefinition`
+records live inside that single asset, there are no per-screen/frame asset files. Add a
+`ScreenRouterHost` (wired to the config + a content-root transform) to a scene, then route through
+the static seam:
 
 ```csharp
 ScreenRouter.Instance.SwitchScreen<MainMenuScreen>();

@@ -5,9 +5,10 @@ namespace PFound.ScreenRouter
 {
     /// <summary>
     /// Authoring record for a modal frame: pooling and prefab from the base, plus stacking policy,
-    /// background-click behaviour, and the open/close animation presets.
+    /// background-click behaviour, and the open/close animation presets. Serialized inline inside
+    /// <see cref="ScreenRouterConfig"/>.
     /// </summary>
-    [CreateAssetMenu(menuName = "PFound/ScreenRouter/Frame Definition", fileName = "FrameDefinition")]
+    [Serializable]
     public sealed class FrameDefinition : ContentDefinition
     {
         [Header("Stacking")]
@@ -67,7 +68,7 @@ namespace PFound.ScreenRouter
             FrameAnimationPreset? openingAnimation = null,
             FrameAnimationPreset? closingAnimation = null)
         {
-            var def = CreateInstance<FrameDefinition>();
+            var def = new FrameDefinition();
             def.InitializeShared(contentType, prefab, pooling);
             def._blockOverlays = blockOverlays;
             def._alwaysStackable = alwaysStackable;

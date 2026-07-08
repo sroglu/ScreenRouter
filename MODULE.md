@@ -51,10 +51,14 @@ standalone csc/mono runner in `Tests/PureCore` (see [Testing](#testing)).
   `OnCloseButtonClicked`.
 
 **Definitions (`Runtime/Definitions`)**
-- `ContentDefinition` (abstract) — content type + prefab + pooling tier.
-- `FrameDefinition`, `ScreenDefinition` — authoring records; each has a `CreateRuntime(...)` factory.
-- `ScreenRouterConfig` (ScriptableObject) — project-wide config asset.
-- `SerializableType` — Unity-serializable `System.Type` wrapper with value equality.
+- `ContentDefinition` (abstract, `[Serializable]`) — content type + prefab + pooling tier; a plain
+  class, not a ScriptableObject.
+- `FrameDefinition`, `ScreenDefinition` (`[Serializable]`) — plain authoring records serialized
+  **inline** in the config's screen/frame lists; each also has a `CreateRuntime(...)` factory.
+- `ScreenRouterConfig` (ScriptableObject) — the **single** project-wide config asset; owns the inline
+  definition lists. The only `[CreateAssetMenu]` type in the module.
+- `SerializableType` — Unity-serializable `System.Type` wrapper with value equality (Editor drawer
+  offers a dropdown of concrete `ContentBase` subclasses).
 
 **Rendering (`Runtime/Rendering`)**
 - `IContentRenderer` — the presentation-surface contract.
@@ -188,18 +192,30 @@ by the engine-free `PoolingPolicy` (`DestroyOnClose` / `CanRevive` / `ReclaimWhe
 
 ## Definitions & config
 
-- `ContentDefinition` (abstract): content type, prefab, pooling tier.
-- `FrameDefinition`: adds `BlockOverlays`, an overlay-exemptions list, `AlwaysStackable`
-  (always wins), `CloseOnBackdropPress`, and opening/closing animation presets. `CreateRuntime(...)`
-  builds an in-memory instance for runtime registration.
-- `ScreenDefinition`: adds an optional `TransitionAnimation` preset. `CreateRuntime(...)` factory.
-- `ScreenRouterConfig` (ScriptableObject): screen/frame definition lists, base sorting order +
-  increment, pool idle timeout, max frame-queue size, and background-blur settings. Type-keyed
-  lookups (`FindScreen` / `FindFrame`) are cached and rebuilt on demand (`InvalidateCaches`). Optional
-  features are gated by **authored toggles** (e.g. `UseBackgroundBlur`), never inferred from a null
-  reference; the config editor greys out the gated fields when a toggle is off.
+Authoring lives in **one asset**. `ScreenRouterConfig` is the only ScriptableObject (and the only
+`[CreateAssetMenu]` type — *PFound/ScreenRouter/Router Config*); every screen and frame is described
+by a plain `[Serializable]` definition serialized **inline** inside it. There are **no per-screen or
+per-frame asset files** — you add rows to the config's `_screens` / `_frames` lists in the inspector.
+
+- `ContentDefinition` (abstract, `[Serializable]`): the shared authoring record — content type,
+  prefab, pooling tier. A plain class, not a ScriptableObject.
+- `FrameDefinition` (`[Serializable]`): adds `BlockOverlays`, an overlay-exemptions list,
+  `AlwaysStackable` (always wins), `CloseOnBackdropPress`, and opening/closing animation presets.
+  `CreateRuntime(...)` builds an in-memory instance for runtime registration.
+- `ScreenDefinition` (`[Serializable]`): adds an optional `TransitionAnimation` preset.
+  `CreateRuntime(...)` factory.
+- `ScreenRouterConfig` (ScriptableObject): holds the inline `List<ScreenDefinition>` /
+  `List<FrameDefinition>`, base sorting order + increment, pool idle timeout, max frame-queue size,
+  and background-blur settings. Type-keyed lookups (`FindScreen` / `FindFrame`) are cached and rebuilt
+  on demand (`InvalidateCaches`). Optional features are gated by **authored toggles** (e.g.
+  `UseBackgroundBlur`), never inferred from a null reference.
 - `SerializableType`: a Unity-serializable `System.Type` wrapper (assembly-qualified name, value
-  equality) with an Editor drawer that offers a dropdown of concrete `ContentBase` subclasses.
+  equality) used by the definitions to reference a `ContentBase` subclass across serialization.
+
+**Authoring in the inspector.** A custom `ScreenRouterConfigEditor` greys out the blur-tuning fields
+when `UseBackgroundBlur` is off (presence is authored, never inferred from a null prefab). Each
+definition's content-type field is drawn by `SerializableTypeDrawer`, which offers a dropdown of the
+concrete `ContentBase` subclasses discovered in the loaded assemblies rather than a hand-typed name.
 
 ## Rendering
 

@@ -5,9 +5,10 @@ namespace PFound.ScreenRouter
 {
     /// <summary>
     /// Authoring record for a full-screen destination: prefab and pooling from the base, plus an
-    /// optional transition animation played when the screen opens.
+    /// optional transition animation played when the screen opens. Serialized inline inside
+    /// <see cref="ScreenRouterConfig"/>.
     /// </summary>
-    [CreateAssetMenu(menuName = "PFound/ScreenRouter/Screen Definition", fileName = "ScreenDefinition")]
+    [Serializable]
     public sealed class ScreenDefinition : ContentDefinition
     {
         [Header("Animation")]
@@ -24,7 +25,7 @@ namespace PFound.ScreenRouter
             PoolingType pooling = PoolingType.Ephemeral,
             FrameAnimationPreset? transitionAnimation = null)
         {
-            var def = CreateInstance<ScreenDefinition>();
+            var def = new ScreenDefinition();
             def.InitializeShared(contentType, prefab, pooling);
             def._transitionAnimation = transitionAnimation ?? default;
             return def;

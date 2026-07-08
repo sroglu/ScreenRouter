@@ -5,9 +5,12 @@ namespace PFound.ScreenRouter
 {
     /// <summary>
     /// Base authoring record shared by screens and frames: which content type it configures, the
-    /// prefab to spawn, and how the router should pool the resulting instance.
+    /// prefab to spawn, and how the router should pool the resulting instance. Serialized inline
+    /// inside <see cref="ScreenRouterConfig"/>, so authoring lives in one asset with no per-screen
+    /// asset files.
     /// </summary>
-    public abstract class ContentDefinition : ScriptableObject
+    [Serializable]
+    public abstract class ContentDefinition
     {
         [SerializeField]
         [Tooltip("The ContentBase subclass this definition drives.")]
