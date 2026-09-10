@@ -51,4 +51,3 @@ sub-flow before exiting to the parent. See [MODULE.md](MODULE.md#declarative-nav
 Deep reference: [MODULE.md](MODULE.md) — assemblies, full API, host wiring, lifecycle, pooling tiers,
 definitions/config, rendering, animation, background blur, extension points (guards / runtime types /
 swappable backends), and testing.
-</content>

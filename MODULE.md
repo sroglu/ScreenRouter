@@ -431,5 +431,3 @@ The MonoBehaviour/lifecycle layer is verified in the Unity editor on integration
   flow core engine-free (mono-testable), the builder's `Screen<T>()` / `Frame<T>()` use a `where T :
   class` constraint rather than `where T : Screen` / `where T : Frame`; screen-vs-frame is chosen by
   which method you call, and the router validates the concrete type at open time (fail-fast).
-</content>
-</invoke>
